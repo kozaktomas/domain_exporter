@@ -1,5 +1,4 @@
 # domain_exporter
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fshift%2Fdomain_exporter.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fshift%2Fdomain_exporter?ref=badge_shield)
 
 
 Very simple service which performs WHOIS lookups for a list of domains provided in the "config" file and exposes them on a "/metrics" endpoint for consumption via Prometheus.
@@ -20,6 +19,7 @@ Flags:
       --bind=":9203"          The address to listen on for HTTP requests.
       --log.level=info        Only log messages with the given severity or above. One of: [debug, info, warn, error]
       --log.format=logfmt     Output format of log messages. One of: [logfmt, json]
+      --sleep="20s"           Sleep between lookups (e.g. rate limits)
       --version               Show application version.
 ```
 

@@ -29,6 +29,7 @@ var (
 
 	configFile = kingpin.Flag("config", "Domain exporter configuration file.").Default("domains.yml").String()
 	httpBind   = kingpin.Flag("bind", "The address to listen on for HTTP requests.").Default(":9203").String()
+	sleep      = kingpin.Flag("sleep", "Sleep between lookups (e.g. rate limits)").Default("0s").String()
 
 	domainExpiration = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -60,7 +61,7 @@ var (
 		"2006-01-02 15:04:05-07",
 		"2006-01-02 15:04:05",
 		"2.1.2006 15:04:05",
-		"02.01.2006",
+		"2.1.2006",
 	}
 
 	config promlog.Config
@@ -99,6 +100,11 @@ func main() {
 	}
 	err = yaml.Unmarshal(yamlFile, &config)
 
+	sleepDuration, err := time.ParseDuration(*sleep)
+	if err != nil {
+		level.Warn(logger).Log("warn", err)
+	}
+
 	if err != nil {
 		level.Warn(logger).Log("warn", err)
 	} else {
@@ -108,6 +114,9 @@ func main() {
 					_, err = lookup(query, domainExpiration, parsedExpiration)
 					if err != nil {
 						level.Warn(logger).Log("warn", err)
+					}
+					if sleepDuration > 0 {
+						time.Sleep(sleepDuration)
 					}
 					continue
 				}

@@ -8,10 +8,7 @@ require (
 	github.com/domainr/whois v0.0.0-20180714175948-975c7833b02e
 	github.com/domainr/whoistest v0.0.0-20180714175718-26cad4b7c941 // indirect
 	github.com/go-kit/kit v0.9.0
-	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/prometheus/client_golang v1.1.0

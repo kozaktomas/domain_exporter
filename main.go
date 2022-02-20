@@ -27,6 +27,9 @@ var (
 	// How often to check domains
 	checkRate = 12 * time.Hour
 
+	// Number of possible maxRetries in one lookup
+	maxRetries = 5
+
 	configFile = kingpin.Flag("config", "Domain exporter configuration file.").Default("domains.yml").String()
 	httpBind   = kingpin.Flag("bind", "The address to listen on for HTTP requests.").Default(":9203").String()
 	sleep      = kingpin.Flag("sleep", "Sleep between lookups (e.g. rate limits)").Default("0s").String()
@@ -46,7 +49,8 @@ var (
 		[]string{"domain"},
 	)
 
-	expiryRegex = regexp.MustCompile(`(?i)(\[有効期限]|Registry Expiry Date|paid-till|Expiration Date|Expiration Time|Expiry.*|expires.*|expire-date|Expire)[?:|\s][ \t](.*)`)
+	expiryRegex    = regexp.MustCompile(`(?i)(\[有効期限]|Registry Expiry Date|paid-till|Expiration Date|Expiration Time|Expiry.*|expires.*|expire-date|Expire)[?:|\s][ \t](.*)`)
+	rateLimitRegex = regexp.MustCompile(`(?i)(Please slow down and try again later)`)
 
 	formats = []string{
 		"2006-01-02",
@@ -191,14 +195,32 @@ func parse(host string, res []byte) (float64, error) {
 }
 
 func lookup(domain string, handler *prometheus.GaugeVec, parsedExpiration *prometheus.GaugeVec) (float64, error) {
-	req, err := whois.NewRequest(domain)
-	if err != nil {
-		return -1, err
-	}
 
-	res, err := whois.DefaultClient.Fetch(req)
-	if err != nil {
-		return -1, err
+	var res *whois.Response
+	tries := 0
+	finished := false
+	for tries < maxRetries && !finished {
+		tries++
+
+		req, err := whois.NewRequest(domain)
+		if err != nil {
+			return -1, err
+		}
+
+		res, err = whois.DefaultClient.Fetch(req)
+		if err != nil {
+			return -1, err
+		}
+
+		if rateLimitRegex.Match(res.Body) {
+			level.Info(logger).Log("warn", fmt.Sprintf("whois for domain %q hit rate limit", domain))
+			if tries == maxRetries {
+				return -1, fmt.Errorf("could not get whois for domain %q", domain)
+			}
+			time.Sleep(15 * time.Second) // rate limit hit -> try to wait for a while
+		} else {
+			finished = true
+		}
 	}
 
 	date, err := parse(domain, res.Body)
